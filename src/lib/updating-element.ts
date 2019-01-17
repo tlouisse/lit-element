@@ -18,7 +18,7 @@
  * alias this function, so we have to use a small shim that has the same
  * behavior when not compiling.
  */
-const JSCompiler_renameProperty = (prop: PropertyKey, _obj: any) => prop;
+const JSCompiler_renameProperty = (prop: PropertyKey, _obj: unknown) => prop;
 
 /**
  * Returns the property descriptor for a property on this prototype by walking
@@ -41,7 +41,7 @@ const descriptorFromPrototype = (name: PropertyKey, proto: UpdatingElement) => {
 /**
  * Converts property values to and from attribute values.
  */
-export interface ComplexAttributeConverter<Type = any, TypeHint = any> {
+export interface ComplexAttributeConverter<Type = unknown, TypeHint = unknown> {
 
   /**
    * Function called to convert an attribute value to a property
@@ -56,13 +56,13 @@ export interface ComplexAttributeConverter<Type = any, TypeHint = any> {
   toAttribute?(value: Type, type?: TypeHint): string|null;
 }
 
-type AttributeConverter<Type = any, TypeHint = any> =
+type AttributeConverter<Type = unknown, TypeHint = unknown> =
     ComplexAttributeConverter<Type>|((value: string, type?: TypeHint) => Type);
 
 /**
  * Defines options for a property accessor.
  */
-export interface PropertyDeclaration<Type = any, TypeHint = any> {
+export interface PropertyDeclaration<Type = unknown, TypeHint = unknown> {
 
   /**
    * Indicates how and whether the property becomes an observed attribute.
@@ -71,14 +71,14 @@ export interface PropertyDeclaration<Type = any, TypeHint = any> {
    * becomes `foobar`). If a string, the string value is observed (e.g
    * `attribute: 'foo-bar'`).
    */
-  attribute?: boolean|string;
+  readonly attribute?: boolean|string;
 
   /**
    * Indicates the type of the property. This is used only as a hint for the
    * `converter` to determine how to convert the attribute
    * to/from a property.
    */
-  type?: TypeHint;
+  readonly type?: TypeHint;
 
   /**
    * Indicates how to convert the attribute to/from a property. If this value
@@ -92,7 +92,7 @@ export interface PropertyDeclaration<Type = any, TypeHint = any> {
    * the property is never updated again as a result of the attribute changing,
    * and vice versa.
    */
-  converter?: AttributeConverter<Type, TypeHint>;
+  readonly converter?: AttributeConverter<Type, TypeHint>;
 
   /**
    * Indicates if the property should reflect to an attribute.
@@ -101,7 +101,7 @@ export interface PropertyDeclaration<Type = any, TypeHint = any> {
    * property option and the value of the property converted using the rules
    * from the `converter` property option.
    */
-  reflect?: boolean;
+  readonly reflect?: boolean;
 
   /**
    * A function that indicates if a property should be considered changed when
@@ -118,7 +118,7 @@ export interface PropertyDeclaration<Type = any, TypeHint = any> {
    * `this.requestUpdate(propertyName, oldValue)` to request an update when
    * the property changes.
    */
-  noAccessor?: boolean;
+  readonly noAccessor?: boolean;
 }
 
 /**
@@ -127,7 +127,7 @@ export interface PropertyDeclaration<Type = any, TypeHint = any> {
  * PropertyDeclaration options.
  */
 export interface PropertyDeclarations {
-  [key: string]: PropertyDeclaration;
+  readonly [key: string]: PropertyDeclaration;
 }
 
 type PropertyDeclarationMap = Map<PropertyKey, PropertyDeclaration>;
@@ -138,7 +138,7 @@ export type PropertyValues = Map<PropertyKey, unknown>;
 
 export const defaultConverter: ComplexAttributeConverter = {
 
-  toAttribute(value: any, type?: any) {
+  toAttribute(value: unknown, type?: unknown): string | null {
     switch (type) {
     case Boolean:
       return value ? '' : null;
@@ -146,12 +146,12 @@ export const defaultConverter: ComplexAttributeConverter = {
     case Array:
       // if the value is `null` or `undefined` pass this through
       // to allow removing/no change behavior.
-      return value == null ? value : JSON.stringify(value);
+      return value == null ? null : JSON.stringify(value);
     }
-    return value;
+    return value == null ? null : String(value);
   },
 
-  fromAttribute(value: any, type?: any) {
+  fromAttribute(value: unknown, type?: unknown) {
     switch (type) {
     case Boolean:
       return value !== null;
@@ -159,7 +159,7 @@ export const defaultConverter: ComplexAttributeConverter = {
       return value === null ? null : Number(value);
     case Object:
     case Array:
-      return JSON.parse(value);
+      return JSON.parse(typeof value === 'string' ? value : String(value));
     }
     return value;
   }
@@ -267,9 +267,9 @@ export abstract class UpdatingElement extends HTMLElement {
             JSCompiler_renameProperty('_classProperties', this))) {
       this._classProperties = new Map();
       // NOTE: Workaround IE11 not supporting Map constructor argument.
-      const superProperties = Object.getPrototypeOf(this)._classProperties;
+      const superProperties: PropertyDeclarationMap = Object.getPrototypeOf(this)._classProperties;
       if (superProperties !== undefined) {
-        superProperties.forEach((v: any, k: PropertyKey) =>
+        superProperties.forEach((v: PropertyDeclaration, k: PropertyKey) =>
                                     this._classProperties!.set(k, v));
       }
     }
@@ -298,7 +298,7 @@ export abstract class UpdatingElement extends HTMLElement {
         const {set, get} = superDesc;
         desc = {
           get() { return get.call(this); },
-          set(value: any) {
+          set(value: unknown) {
             const oldValue = this[name];
             set.call(this, value);
             this.requestUpdate(name, oldValue);
@@ -310,7 +310,7 @@ export abstract class UpdatingElement extends HTMLElement {
         const key = typeof name === 'symbol' ? Symbol() : `__${name}`;
         desc = {
           get() { return this[key]; },
-          set(value: any) {
+          set(value: unknown) {
             const oldValue = this[name];
             this[key] = value;
             this.requestUpdate(name, oldValue);
@@ -359,6 +359,7 @@ export abstract class UpdatingElement extends HTMLElement {
       for (const p of propKeys) {
         // note, use of `any` is due to TypeSript lack of support for symbol in
         // index types
+        // tslint:disable-next-line:no-any no symbol in index
         this.createProperty(p, (props as any)[p]);
       }
     }
@@ -488,6 +489,7 @@ export abstract class UpdatingElement extends HTMLElement {
   private _applyInstanceProperties() {
     // Use forEach so this works even if for/of loops are compiled to for loops
     // expecting arrays
+    // tslint:disable-next-line:no-any
     this._instanceProperties!.forEach((v, p) => (this as any)[p] = v);
     this._instanceProperties = undefined;
   }
@@ -566,7 +568,8 @@ export abstract class UpdatingElement extends HTMLElement {
       // mark state reflecting
       this._updateState = this._updateState | STATE_IS_REFLECTING_TO_PROPERTY;
       this[propName as keyof this] =
-          ctor._propertyValueFromAttribute(value, options);
+          // tslint:disable-next-line:no-any
+          ctor._propertyValueFromAttribute(value, options) as any;
       // mark state not reflecting
       this._updateState = this._updateState & ~STATE_IS_REFLECTING_TO_PROPERTY;
     }
@@ -585,7 +588,7 @@ export abstract class UpdatingElement extends HTMLElement {
    * @param oldValue {any} (optional) old value of requesting property
    * @returns {Promise} A Promise that is resolved when the update completes.
    */
-  requestUpdate(name?: PropertyKey, oldValue?: any) {
+  requestUpdate(name?: PropertyKey, oldValue?: unknown) {
     let shouldRequestUpdate = true;
     // if we have a property key, perform property update steps.
     if (name !== undefined && !this._changedProperties.has(name)) {

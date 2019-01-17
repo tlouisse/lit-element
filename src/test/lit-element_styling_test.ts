@@ -429,6 +429,7 @@ suite('Static get styles', () => {
   });
 
   test('`css` get styles throws when unsafe values are used', async () => {
+    // tslint:disable:no-any intentionally unsafe code
     assert.throws(() => { css`div { border: ${`2px solid blue;` as any}}`; });
   });
 

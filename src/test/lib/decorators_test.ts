@@ -23,6 +23,8 @@ import {
 } from '../../lit-element.js';
 import {generateElementName} from '../test-helpers.js';
 
+// tslint:disable:no-any ok in tests
+
 let hasOptions;
 const supportsOptions = (function() {
   if (hasOptions !== undefined) {
