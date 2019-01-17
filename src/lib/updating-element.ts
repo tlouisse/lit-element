@@ -141,7 +141,7 @@ export type PropertyValues = Map<PropertyKey, unknown>;
 
 export const defaultConverter: ComplexAttributeConverter = {
 
-  toAttribute(value: unknown, type?: unknown) : unknown {
+  toAttribute(value: unknown, type?: unknown): unknown {
     switch (type) {
     case Boolean:
       return value ? '' : null;
