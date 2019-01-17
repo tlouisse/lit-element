@@ -22,14 +22,15 @@ export {html, svg, TemplateResult, SVGTemplateResult} from 'lit-html/lit-html';
 import {supportsAdoptingStyleSheets, CSSResult} from './lib/css-tag.js';
 export * from './lib/css-tag.js';
 
-export interface CSSResultArray extends Array<CSSResult | CSSResultArray> {}
+export interface CSSResultArray extends Array<CSSResult|CSSResultArray> {}
 
 /**
  * Minimal implementation of Array.prototype.flat
  * @param arr the array to flatten
  * @param result the accumlated result
  */
-function arrayFlat(styles: CSSResultArray, result: CSSResult[] = []): CSSResult[] {
+function arrayFlat(styles: CSSResultArray,
+                   result: CSSResult[] = []): CSSResult[] {
   for (let i = 0, length = styles.length; i < length; i++) {
     const value = styles[i];
     if (Array.isArray(value)) {
@@ -42,7 +43,8 @@ function arrayFlat(styles: CSSResultArray, result: CSSResult[] = []): CSSResult[
 }
 
 /** Deeply flattens styles array. Uses native flat if available. */
-const flattenStyles = (styles: CSSResultArray): CSSResult[] => styles.flat ? styles.flat(Infinity) : arrayFlat(styles);
+const flattenStyles = (styles: CSSResultArray): CSSResult[] =>
+    styles.flat ? styles.flat(Infinity) : arrayFlat(styles);
 
 export class LitElement extends UpdatingElement {
 
@@ -66,7 +68,7 @@ export class LitElement extends UpdatingElement {
    * Array of styles to apply to the element. The styles should be defined
    * using the `css` tag function.
    */
-  static get styles(): CSSResult | CSSResultArray { return []; }
+  static get styles(): CSSResult|CSSResultArray { return []; }
 
   private static _styles: CSSResult[]|undefined;
 
@@ -88,7 +90,7 @@ export class LitElement extends UpdatingElement {
         this._styles = [];
         styleSet.forEach((v) => this._styles!.unshift(v));
       } else {
-        this._styles = [this.styles];
+        this._styles = [ this.styles ];
       }
     }
     return this._styles;

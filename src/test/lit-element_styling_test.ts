@@ -537,10 +537,14 @@ suite('Static get styles', () => {
     const level2 = el.shadowRoot!.querySelector('.level2');
     const level3 = el.shadowRoot!.querySelector('.level3');
     const level4 = el.shadowRoot!.querySelector('.level4');
-    assert.equal(getComputedStyleValue(level1!, 'border-top-width').trim(), '1px');
-    assert.equal(getComputedStyleValue(level2!, 'border-top-width').trim(), '2px');
-    assert.equal(getComputedStyleValue(level3!, 'border-top-width').trim(), '3px');
-    assert.equal(getComputedStyleValue(level4!, 'border-top-width').trim(), '4px');
+    assert.equal(getComputedStyleValue(level1!, 'border-top-width').trim(),
+                 '1px');
+    assert.equal(getComputedStyleValue(level2!, 'border-top-width').trim(),
+                 '2px');
+    assert.equal(getComputedStyleValue(level3!, 'border-top-width').trim(),
+                 '3px');
+    assert.equal(getComputedStyleValue(level4!, 'border-top-width').trim(),
+                 '4px');
   });
 });
 

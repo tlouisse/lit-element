@@ -141,7 +141,7 @@ export type PropertyValues = Map<PropertyKey, unknown>;
 
 export const defaultConverter: ComplexAttributeConverter = {
 
-  toAttribute(value: unknown, type?: unknown): unknown {
+  toAttribute(value: unknown, type?: unknown) : unknown {
     switch (type) {
     case Boolean:
       return value ? '' : null;
@@ -270,7 +270,8 @@ export abstract class UpdatingElement extends HTMLElement {
             JSCompiler_renameProperty('_classProperties', this))) {
       this._classProperties = new Map();
       // NOTE: Workaround IE11 not supporting Map constructor argument.
-      const superProperties: PropertyDeclarationMap = Object.getPrototypeOf(this)._classProperties;
+      const superProperties: PropertyDeclarationMap =
+          Object.getPrototypeOf(this)._classProperties;
       if (superProperties !== undefined) {
         superProperties.forEach((v: PropertyDeclaration, k: PropertyKey) =>
                                     this._classProperties!.set(k, v));
