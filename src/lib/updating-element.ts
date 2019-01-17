@@ -47,13 +47,16 @@ export interface ComplexAttributeConverter<Type = unknown, TypeHint = unknown> {
    * Function called to convert an attribute value to a property
    * value.
    */
-  fromAttribute?(value: string, type?: TypeHint): Type;
+  fromAttribute?(value: string|null, type?: TypeHint): Type;
 
   /**
    * Function called to convert a property value to an attribute
    * value.
+   *
+   * It returns unknown instead of string, to be compatible with
+   * https://github.com/WICG/trusted-types (and similar efforts).
    */
-  toAttribute?(value: Type, type?: TypeHint): string|null;
+  toAttribute?(value: Type, type?: TypeHint): unknown;
 }
 
 type AttributeConverter<Type = unknown, TypeHint = unknown> =
@@ -138,7 +141,7 @@ export type PropertyValues = Map<PropertyKey, unknown>;
 
 export const defaultConverter: ComplexAttributeConverter = {
 
-  toAttribute(value: unknown, type?: unknown): string | null {
+  toAttribute(value: unknown, type?: unknown): unknown {
     switch (type) {
     case Boolean:
       return value ? '' : null;
@@ -146,12 +149,12 @@ export const defaultConverter: ComplexAttributeConverter = {
     case Array:
       // if the value is `null` or `undefined` pass this through
       // to allow removing/no change behavior.
-      return value == null ? null : JSON.stringify(value);
+      return value == null ? value : JSON.stringify(value);
     }
-    return value == null ? null : String(value);
+    return value;
   },
 
-  fromAttribute(value: unknown, type?: unknown) {
+  fromAttribute(value: string|null, type?: unknown) {
     switch (type) {
     case Boolean:
       return value !== null;
@@ -159,7 +162,7 @@ export const defaultConverter: ComplexAttributeConverter = {
       return value === null ? null : Number(value);
     case Object:
     case Array:
-      return JSON.parse(typeof value === 'string' ? value : String(value));
+      return JSON.parse(value!);
     }
     return value;
   }
@@ -397,7 +400,7 @@ export abstract class UpdatingElement extends HTMLElement {
    * `converter` or `converter.fromAttribute` property option.
    * @nocollapse
    */
-  private static _propertyValueFromAttribute(value: string,
+  private static _propertyValueFromAttribute(value: string|null,
                                              options: PropertyDeclaration) {
     const type = options.type;
     const converter = options.converter || defaultConverter;
@@ -518,7 +521,7 @@ export abstract class UpdatingElement extends HTMLElement {
   /**
    * Synchronizes property values when attributes change.
    */
-  attributeChangedCallback(name: string, old: string, value: string) {
+  attributeChangedCallback(name: string, old: string|null, value: string|null) {
     if (old !== value) {
       this._attributeToProperty(name, value);
     }
@@ -547,14 +550,14 @@ export abstract class UpdatingElement extends HTMLElement {
       if (attrValue == null) {
         this.removeAttribute(attr);
       } else {
-        this.setAttribute(attr, attrValue);
+        this.setAttribute(attr, attrValue as string);
       }
       // mark state not reflecting
       this._updateState = this._updateState & ~STATE_IS_REFLECTING_TO_ATTRIBUTE;
     }
   }
 
-  private _attributeToProperty(name: string, value: string) {
+  private _attributeToProperty(name: string, value: string|null) {
     // Use tracking info to avoid deserializing attribute value if it was
     // just set from a property setter.
     if (this._updateState & STATE_IS_REFLECTING_TO_ATTRIBUTE) {
