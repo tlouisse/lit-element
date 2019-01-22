@@ -41,6 +41,17 @@ function arrayFlat(styles: CSSResultArray, result: CSSResult[] = []): CSSResult[
   return result;
 }
 
+function getClosestStyleConfigCtor(ctor: Function) {
+  let closestStyleConfigCtor = ctor.hasOwnProperty(JSCompiler_renameProperty('styles', ctor)) ? ctor : null;
+  let superCtor = Object.getPrototypeOf(ctor);
+  // if `styles` not on current constructor level, get closest parent with `styles`
+  while (superCtor && !closestStyleConfigCtor && !superCtor.hasOwnProperty(JSCompiler_renameProperty('styles', ctor))) {
+    superCtor = Object.getPrototypeOf(ctor);
+    closestStyleConfigCtor = superCtor.styles ? superCtor : null;
+  }
+  return closestStyleConfigCtor;
+}
+
 /** Deeply flattens styles array. Uses native flat if available. */
 const flattenStyles = (styles: CSSResultArray): CSSResult[] => styles.flat ? styles.flat(Infinity) : arrayFlat(styles);
 
@@ -70,12 +81,18 @@ export class LitElement extends UpdatingElement {
 
   private static _styles: CSSResult[]|undefined;
 
+  private static __closestCreatedStylesCtor?: Function;
+
   private static get _uniqueStyles(): CSSResult[] {
     if (!this.hasOwnProperty(JSCompiler_renameProperty('_styles', this))) {
       // Inherit styles from superclass if none have been set.
       if (!this[JSCompiler_renameProperty('styles', this)]) {
-        this._styles = this._styles !== undefined ? this._styles : [];
-      } else {
+        this._styles = [];
+      }
+      // Only create a new style array when needed: this would be when the closest
+      // (parent) `styles` config is at a higher level in the constructor chain
+      // hierarchy than the last ones (this._styles) created.
+      else if (getClosestStyleConfigCtor(this) !== this.__closestCreatedStylesCtor) {
         // Take care not to call `this.styles` multiple times since this generates
         // new CSSResults each time.
         // TODO(sorvell): Since we do not cache CSSResults by input, any
@@ -101,6 +118,7 @@ export class LitElement extends UpdatingElement {
         } else {
           this._styles = userStyles ? [userStyles] : [];
         }
+        this.__closestCreatedStylesCtor = this;
       }
     }
     return this._styles as CSSResult[];
